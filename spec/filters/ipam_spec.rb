@@ -3,7 +3,7 @@ require_relative '../spec_helper'
 require "logstash/filters/ipam"
 
 describe LogStash::Filters::Ipam do
-  describe "Set to Hello World" do
+  describe "Create subnets array from IP" do
     let(:config) do <<-CONFIG
       filter {
         ipam {
@@ -13,7 +13,7 @@ describe LogStash::Filters::Ipam do
     CONFIG
     end
 
-    sample("message" => "some text") do
+    sample("subnets" => ["array", "of", "subnets"]) do
       expect(subject).to include("subnets")
       #expect(subject.get('subnets')).to eq('Hello World')
     end

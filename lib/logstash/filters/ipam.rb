@@ -36,9 +36,9 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
   def filter(event)
 
     results = Array.new
-    subnets = File.read(@file)
-    subnets = JSON.parse(subnets)
-    subnets = subnets["subnets"]
+    file = File.read(@file)
+    json = JSON.parse(file)
+    subnets = json["subnets"]
 
     ip = IPAddr.new(@ip)
     subnets.each do |sub|
