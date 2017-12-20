@@ -2,11 +2,11 @@ Gem::Specification.new do |s|
   s.name          = 'logstash-filter-ipam'
   s.version       = '0.1.0'
   s.licenses      = ['Apache-2.0']
-  s.summary       = 'TODO: Write a short summary, because Rubygems requires one.'
-  s.description   = 'TODO: Write a longer description or delete this line.'
-  s.homepage      = 'TODO: Put your plugin''s website or public repo URL here.'
-  s.authors       = ['']
-  s.email         = ''
+  s.summary       = 'Correlation with IPAM.'
+  s.description   = 'Filter that allows getting subnets from existing file extracted from IPAM for an IP address.'
+  s.homepage      = 'https://github.com/SchwiftyDoc/logstash-filter-ipam'
+  s.authors       = ['Corentin Dekimpe']
+  s.email         = 'cdekimpe@telkea.com'
   s.require_paths = ['lib']
 
   # Files

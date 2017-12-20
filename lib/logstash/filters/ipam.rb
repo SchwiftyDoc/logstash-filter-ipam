@@ -1,6 +1,8 @@
 # encoding: utf-8
 require "logstash/filters/base"
 require "logstash/namespace"
+require "ipaddr"
+require "json"
 
 # This  filter will replace the contents of the default 
 # message field with whatever you specify in the configuration.
@@ -20,21 +22,33 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
   config_name "ipam"
   
   # Replace the message with this value.
-  config :message, :validate => :string, :default => "Hello World!"
-  
+  config :ip, :validate => :string, :required => true
+  config :file, :validate => :string, :default => "/opt/subnets/subnets.json"
+  config :field, :validate => :string, :default => "subnets"
+
 
   public
   def register
-    # Add instance variables 
+    # Add instance variables
   end # def register
 
   public
   def filter(event)
 
-    if @message
-      # Replace the event message with our message as configured in the
-      # config file.
-      event.set("message", @message)
+    results = Array.new
+    subnets = File.read(@file)
+    subnets = JSON.parse(subnets)
+    subnets = subnets["subnets"]
+
+    ip = IPAddr.new(@ip)
+    subnets.each do |sub|
+      if IPAddr.new(sub['address']) === ip
+        results.push(sub)
+      end
+    end
+
+    if results.length > 0
+      event.set(@field, results)
     end
 
     # filter_matched should go in the last line of our successful code
