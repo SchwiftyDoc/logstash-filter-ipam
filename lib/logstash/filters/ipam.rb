@@ -40,7 +40,13 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
     json = JSON.parse(file)
     subnets = json["subnets"]
 
-    ip = IPAddr.new(@ip)
+    begin
+      ip = IPAddr.new(@ip)
+    rescue ArgumentError => e
+      @logger.warn("Invalid IP address, skipping", :address => @ip, :event => event)
+      nil
+    end
+
     subnets.each do |sub|
       if IPAddr.new(sub['subnet'] + "/" + sub['netmask'].to_s) === ip
         results.push(sub)
@@ -50,9 +56,8 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
     # Set field only if there is some subnets checked.
     if results.length > 0
       event.set(@field, results)
+      # filter_matched should go in the last line of our successful code
+      filter_matched(event)
     end
-
-    # filter_matched should go in the last line of our successful code
-    filter_matched(event)
   end # def filter
 end # class LogStash::Filters::Ipam
