@@ -42,7 +42,7 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
 
     ip = IPAddr.new(@ip)
     subnets.each do |sub|
-      if IPAddr.new(sub['subnet'] + "/" + sub['netmask']) === ip
+      if IPAddr.new(sub['subnet'] + "/" + sub['netmask'].to_s) === ip
         results.push(sub)
       end
     end
