@@ -47,6 +47,7 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
       end
     end
 
+    # Set field only if there is some subnets checked.
     if results.length > 0
       event.set(@field, results)
     end
