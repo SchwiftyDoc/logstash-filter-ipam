@@ -13,7 +13,7 @@ describe LogStash::Filters::Ipam do
     CONFIG
     end
 
-    sample("subnets" => ["array", "of", "subnets"]) do
+    sample("ip" => "212.24.215.123") do
       expect(subject).to include("subnets")
       #expect(subject.get('subnets')).to eq('Hello World')
     end
