@@ -1,4 +1,5 @@
 # encoding: utf-8
+require "active_record"
 require "activerecord-jdbcmysql-adapter"
 require "logstash/filters/base"
 require "logstash/namespace"
@@ -22,6 +23,7 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
 
   # Mysql connection options.
   config :mysql_host, :validate => :string, :required => true
+  #config :mysql_port, :validate => :number, :default => 3306
   config :mysql_user, :validate => :string, :required => true
   config :mysql_pass, :validate => :string, :required => true
   config :mysql_db, :validate => :string, :default => "phpipam"
@@ -45,16 +47,40 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
   private
   def downloadIpamSubnets(event)
     begin
-      client = Mysql::Client.new(:host => @mysql_host,
-                                 :username => @mysql_user,
-                                 :password => @mysql_pass,
-                                 :database => @mysql_db)
-      result = client.query("SELECT id,  FROM subnets")
-      client.close if client
-      return JSON.parse(result)
+      # Create connection to the MySQL Database
+      ActiveRecord::Base.establish_connection ({
+          :adapter => "mysql",
+          :host => @mysql_host,
+          :username => @mysql_user,
+          :password => @mysql_pass,
+          :database => @mysql_db
+      })
+
+      # Get all the subnets from the Table
+      subnets = ActiveRecord::Base.connection.exec_query("SELECT id, subnet, mask, description FROM subnets")
+
+      # Parse result to create a JSON string
+      json = '{"subnets":['
+      subnets.each do |sub|
+        json += '{"id":' + sub['id'].to_s
+        sub['subnet'] = Integer(sub['subnet'])
+        if sub['subnet'] >= 0 && sub['subnet'] <= 4294967295 # Check if the subnet is an IPv4 address
+          sub['subnet'] = IPAddr.new(sub['subnet'], Socket::AF_INET).to_s
+        end
+        json += ', "subnet": "' + sub['subnet'].to_s + '"'
+        if sub['mask'].to_s.length > 0
+          json += ', "netmask": ' + sub['mask'].to_s
+        else
+          json += ', "netmask": 0'
+        end
+        json += ', "description": "' + sub['description'] + '"},'
+      end
+      json = json[0...-1]
+      json += ']}'
     rescue
-        @logger.warn("Impossible to retrieve data from Mysql.", :address => @mysql_host, :event => event)
+        @logger.warn("Impossible to retrieve data from MySQL.", :address => @mysql_host, :event => event)
     end
+    return json
   end
 
   private
@@ -103,8 +129,8 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
     checkFile(event)
 
     # Get Subnets Checking the IP
-    # if can't read => Warning
-    # if gateway is false => won't register "0.0.0.0" subnets
+    #   if can't read => Warning
+    #   if gateway is false => won't register "0.0.0.0" subnets
     ipamSubnets = getIpamSubnets(event)
     subnets = checkIpSubnets(@ip, subnets)
 
