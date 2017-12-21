@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'logstash-filter-ipam'
-  s.version       = '0.1.3'
+  s.version       = '0.1.4'
   s.licenses      = ['Apache-2.0']
   s.summary       = 'Correlation with IPAM.'
   s.description   = 'Filter that allows getting subnets from existing file extracted from IPAM for an IP address.'
