@@ -13,9 +13,12 @@ describe LogStash::Filters::Ipam do
     CONFIG
     end
 
-    sample("ip" => "212.24.215.123") do
+    sample("ip" => "212.24.215.123",
+           "mysql_host" => "172.19.0.19",
+           "mysql_user" => "kibana",
+           "mysql_pass" => "QZQxf4XQGni6",) do
       expect(subject).to include("subnets")
-      #expect(subject.get('subnets')).to eq('Hello World')
+      expect(subject.get('subnets')).to !eq('')
     end
   end
 end
