@@ -50,7 +50,7 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
                                  :password => @mysql_pass,
                                  :database => @mysql_db)
       result = client.query("SELECT id,  FROM subnets")
-      client.close
+      client.close()
       return JSON.parse(result)
     rescue
         @logger.warn("Impossible to retrieve data from Mysql.", :address => @mysql_host, :event => event)
@@ -76,7 +76,7 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
       if !@gateway && sub['subnet'] == "0.0.0.0"
         next
       end
-      if IPAddr.new(sub['subnet'] + "/" + sub['netmask'].to_s) === ip # contains
+      if IPAddr.new(sub['subnet'] + "/" + sub['netmask'].to_s).include?(ip)
         results.push(sub)
       end
     end
