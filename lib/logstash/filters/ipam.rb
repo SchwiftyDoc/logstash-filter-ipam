@@ -1,8 +1,8 @@
 # encoding: utf-8
+require "activerecord-jdbcmysql-adapter"
 require "logstash/filters/base"
 require "logstash/namespace"
 require "ipaddr"
-require "mysql"
 require "json"
 
 # This  filter will replace the contents of the default
