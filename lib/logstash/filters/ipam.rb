@@ -23,7 +23,7 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
 
   # Mysql connection options.
   config :mysql_host, :validate => :string, :required => true
-  #config :mysql_port, :validate => :number, :default => 3306
+  config :mysql_port, :validate => :number, :default => 3306
   config :mysql_user, :validate => :string, :required => true
   config :mysql_pass, :validate => :string, :required => true
   config :mysql_db, :validate => :string, :default => "phpipam"
@@ -59,24 +59,20 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
       # Get all the subnets from the Table
       subnets = ActiveRecord::Base.connection.exec_query("SELECT id, subnet, mask, description FROM subnets")
 
-      # Parse result to create a JSON string
-      json = '{"subnets":['
+      # Set subnets into IPv4 address format
       subnets.each do |sub|
-        json += '{"id":' + sub['id'].to_s
-        sub['subnet'] = Integer(sub['subnet'])
-        if sub['subnet'] >= 0 && sub['subnet'] <= 4294967295 # Check if the subnet is an IPv4 address
-          sub['subnet'] = IPAddr.new(sub['subnet'], Socket::AF_INET).to_s
-        end
-        json += ', "subnet": "' + sub['subnet'].to_s + '"'
-        if sub['mask'].to_s.length > 0
-          json += ', "netmask": ' + sub['mask'].to_s
+        isub = Integer(sub['subnet'])
+        if isub >= 0 && isub <= 4294967295
+          sub['subnet'] = IPAddr.new(isub, Socket::AF_INET).to_s
+          sub['ipv4'] = true
         else
-          json += ', "netmask": 0'
+          sub['ipv4'] = false
+          @logger.warn("Logger : Not compatible with IPv4.", :address => sub['subnet'], :event => event)
         end
-        json += ', "description": "' + sub['description'] + '"},'
       end
-      json = json[0...-1]
-      json += ']}'
+
+      # Parse result to create a JSON string
+      return subnets.to_json
     rescue
         @logger.warn("Impossible to retrieve data from MySQL.", :address => @mysql_host, :event => event)
     end
@@ -88,8 +84,7 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
     # Reading files
     begin
       file = File.read(@file)
-      json  JSON.parse(file)
-      return json["subnets"]
+      return  JSON.parse(file)
     rescue
       @logger.warn("Impossible to read into file.", :address => @file, :event => event)
     end
@@ -99,6 +94,9 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
   def checkIpSubnets(ip, subnets)
     results = Array.new
     subnets.each do |sub|
+      if !sub['ipv4']
+        next
+      end
       if !@gateway && sub['subnet'] == "0.0.0.0"
         next
       end
@@ -128,10 +126,14 @@ class LogStash::Filters::Ipam < LogStash::Filters::Base
     #   if need reset => update content.
     checkFile(event)
 
-    # Get Subnets Checking the IP
+    # Get Subnets from updated file
     #   if can't read => Warning
-    #   if gateway is false => won't register "0.0.0.0" subnets
     ipamSubnets = getIpamSubnets(event)
+
+    # Get Subnets that contains IP
+    #   if @gateway => Get 0.0.0.0 subnets
+    #   else        => Don't get those subnets
+    #   if !ipv4 => Don't handle those subnets
     subnets = checkIpSubnets(@ip, subnets)
 
     # Set field only if there is some subnets checked.
